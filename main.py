@@ -23,8 +23,12 @@ async def process_start_command(message: types.Message):
     start_message = "Ты гей! CONTINUE"
     await bot.send_message(message.from_user.id, start_message)
 
+@dp.message_handler(commands=['find'])
+async def process_start_command(message: types.Message):
+    start_message = "Ты гей! FIND. NIKITA GAY!!!"
+    await bot.send_message(message.from_user.id, start_message)
 
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=['allin'])
 async def process_start_command(message: types.Message):
     start_message = "Ты гей! ALLIN"
     await bot.send_message(message.from_user.id, start_message)
