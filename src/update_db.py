@@ -1,129 +1,101 @@
-import requests
-import json
-import pandas as pd
-import time
-import os
+import asyncio
 import re
-import math
+
+import grequests
+import pandas as pd
+from alive_progress import alive_bar
+from bs4 import BeautifulSoup
+
+from db.database import Database
+from db.queries import Queries
+from config import config
 
 
-class ModelsManager():
+class ModelsManager:
     def __init__(self):
-        self.pages = requests.get("https://leakedzone.com/creators").text.\
-                                split("class=\"page-item hidden-xs\"")[1].\
-                                                        split("</a>")[0].\
-                                                            split("\">")[1]
-        self.models_list = []
-        self.photos_list = []
-        self.videos_list = []
-        self.img_ref_list = []
-        self.bio_list = []
-        self.est_time = 0
-        self.all_models_db = pd.DataFrame()
+        self.initialize_database()
+        self.get_pages_number()
 
+    def get_pages_number(self):
+        response = grequests.map([grequests.get(config.MAIN_URL)])[0]
+        soup = BeautifulSoup(response.text, "html.parser")
+        self.pages = int(soup.find_all("a", class_="page-link")[2].text)
 
-    def update_models(self):    
-        for curr_page in range(1, int(self.pages)+1):
-            self.get_models(index=curr_page, max=int(self.pages))
-        self.save_database()
+    def initialize_database(self):
+        Database.initialize(
+            database=config.DATABASE,
+            host=config.DB_HOST,
+            user=config.DB_USER,
+            password=config.DB_PASSWORD,
+        )
 
+    async def update_models(self):
+        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages + 1)]
+        rs = [grequests.get(url) for url in urls]
 
-    def update_materials(self):
-        print("...")
-        self.videos = pd.read_csv("models.csv")['Videos'].to_list() 
-        self.photos = pd.read_csv("models.csv")['Photos'].to_list() 
-        self.models_list = pd.read_csv("models.csv")['Model'].to_list()
-        self.bios = pd.read_csv("models.csv")['Bio'].to_list()
-        self.img_refs = pd.read_csv("models.csv")['Img_ref'].to_list()
+        with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
+            for r in grequests.map(rs):
+                page_models = await self.get_models(r)
+                await Queries.save_models(page_models)
+                bar()
 
-        for index, model in enumerate(self.models_list):
-            if str(self.photos[index]) == "nan" and str(self.videos[index]) == "nan":
-                self.get_model_materials(index=index, model=model, max=len(self.models_list))
-            else:
-                self.photos_list.append(self.photos[index])
-                self.videos_list.append(self.videos[index])
-                self.img_ref_list.append(self.img_refs[index])
-                self.bio_list.append(self.bios[index])
-                os.system("clear")
-                print(f"Collecting materials : [{index}/{len(self.models_list)}] : Already up to date")
+    async def update_materials(self):
+        urls = [url for url in Queries.view_models()]
+        rs = [grequests.get(config.MODELS_URL + str(*url)) for url in urls]
 
-            self.save_database()
+        with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
+            for r in grequests.map(rs):
+                materials = await self.get_model_materials(r)
+                await Queries.save_model_materials(materials)
+                bar()
 
-        self.format_all_bio()
-        self.save_database()
+    async def get_models(self, response: grequests.AsyncRequest):
+        soup = BeautifulSoup(response.text, "html.parser")
 
+        page_models = set()
+        page_models.update(
+            el.text.lstrip("@") for el in soup.find_all("span", class_="date")
+        )
+        return page_models
 
-    def save_database(self): 
-        df = pd.DataFrame({'Model': self.models_list})
-        df = pd.concat([df, pd.DataFrame(self.photos_list, columns=['Photos'])], axis=1)
-        df = pd.concat([df, pd.DataFrame(self.videos_list, columns=['Videos'])], axis=1)
-        df = pd.concat([df, pd.DataFrame(self.img_ref_list, columns=['Img_ref'])], axis=1)
-        df = pd.concat([df, pd.DataFrame(self.bio_list, columns=['Bio'])], axis=1)
-        df.to_csv("models.csv")
+    async def get_model_materials(self, response: grequests.AsyncRequest):
+        soup = BeautifulSoup(response.text, "html.parser")
 
+        materials = {}
+        materials["model"] = await self.get_model_username(soup)
+        materials["photos"] = await self.get_materials_num(soup, id="photos-tab")
+        materials["videos"] = await self.get_materials_num(soup, id="videos-tab")
+        materials["bio"] = await self.get_bio(soup)
+        materials["img_ref"] = await self.get_img_reg(soup)
 
-    def time_bar_decorator(text):
-        def inner(func):
-            def wrapper(*args, **kwargs):
-                cl = args[0]
-                index = kwargs["index"]
-                max = kwargs["max"]
+        return materials
 
-                start_time = time.time()
-                dots = ""
-                for _ in range(index % 5):
-                    dots += '.'
+    async def get_model_username(self, soup):
+        material = soup.find("div", class_="actor-movie").text.strip("@")
 
-                os.system("clear")
-                print(f"{text} : [{index}/{max}] : " + str(cl.est_time) + f" seconds left{dots}")
+        return material
 
-                func(*args, **kwargs)
-                end_time = time.time() - start_time
-                
-                cl.est_time = round((cl.est_time + end_time * (max - index)) / 2.0)
+    async def get_materials_num(self, soup, id=None):
+        material = soup.find("a", {"id": id}).text.split("(")[1].split(f")")[0]
 
-            return wrapper
-        return inner
-    
+        return str(round(eval(material.replace("K", " * 1000"))))
 
-    @time_bar_decorator("Updating models")
-    def get_models(self, index=None, max=None):
-        req = requests.get(f"https://leakedzone.com/creators?page={index}")
+    async def get_bio(self, soup):
+        material = soup.find("div", class_="actor-description descriptions").text
 
-        for text in req.text.split("<span class=\"date\">@")[1:]:
-            self.models_list.append(text.split("</span>")[0])
+        return material.strip().split("-------")[0].rstrip().replace("'", "''")
 
+    async def get_img_reg(self, soup, id=None):
+        material = soup.find("img", class_="model-thumbnail")["src"]
 
-    @time_bar_decorator("Collecting materials")
-    def get_model_materials(self, index=None, model=None, max=None):
-        req = requests.get(f"https://leakedzone.com/{model}")
-        self.photos_list.append(req.text.split("Photos (")[1].split(")</a>")[0])
-        self.videos_list.append(req.text.split(">Videos (")[1].split(")</a>")[0])
-        self.img_ref_list.append(req.text.split("<img class=\"model-thumbnail\" src=\"")[1].split("\" alt")[0])
+        return material
 
-        self.bio_list.append(re.sub("<br />", "\n", req.text.\
-                        split("div class=\"actor-description")[1].\
-                        split("<p>")[1].\
-                        split("-----------")[0]))
-        
-
-    def format_all_bio(self):
-        for index, temp_bio in enumerate(self.models_list):
-            temp_bio = re.sub("<br>", "\n", temp_bio)
-
-            copyright_list = ["copyright", "Copyright", "COPYRIGHT",\
-                              "Do not leak", "Legal action", "By subscribing",\
-                              "By purchasing", "copyrighted", "Copyrighted", "COPYRIGHTED", "DO NOT SCREENSHOT"]
-            
-            for element in copyright_list:
-                if element in temp_bio:
-                    temp_bio = temp_bio.split(element)[0]
-
-            self.bio_list[index] = temp_bio
-            
 
 if __name__ == "__main__":
-    m = ModelsManager()
+    loop = asyncio.get_event_loop()
+    tasks = [loop.create_task(ModelsManager().update_materials())]
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()
     # m.update_models()
-    m.update_materials()
-    m.format_all_bio()
+    # m.update_materials()
+    # m.format_all_bio()
