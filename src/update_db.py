@@ -1,14 +1,13 @@
 import asyncio
-import re
 
 import grequests
-import pandas as pd
 from alive_progress import alive_bar
 from bs4 import BeautifulSoup
 
+from core.config import config
+from core.logger import logger
 from db.database import Database
 from db.queries import Queries
-from config import config
 
 
 class ModelsManager:
@@ -40,10 +39,9 @@ class ModelsManager:
                 bar()
 
     async def update_materials(self):
-        urls = [url for url in Queries.view_models()]
-        rs = [grequests.get(config.MODELS_URL + str(*url)) for url in urls]
-
-        with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
+        urls = Queries.view_models()[:500]
+        with alive_bar(len(urls), force_tty=True, title="Updating Materials:") as bar:
+            rs = (grequests.get(config.MODELS_URL + str(*url)) for url in urls)
             for r in grequests.map(rs):
                 materials = await self.get_model_materials(r)
                 await Queries.save_model_materials(materials)
@@ -77,15 +75,18 @@ class ModelsManager:
 
     async def get_materials_num(self, soup, id=None):
         material = soup.find("a", {"id": id}).text.split("(")[1].split(f")")[0]
-
-        return str(round(eval(material.replace("K", " * 1000"))))
+        try:
+            return str(round(eval(material.replace("K", " * 1000"))))
+        except TypeError as Err:
+            logger.error(Err)
+            return "ERROR"
 
     async def get_bio(self, soup):
         material = soup.find("div", class_="actor-description descriptions").text
 
         return material.strip().split("-------")[0].rstrip().replace("'", "''")
 
-    async def get_img_reg(self, soup, id=None):
+    async def get_img_reg(self, soup):
         material = soup.find("img", class_="model-thumbnail")["src"]
 
         return material
@@ -93,7 +94,7 @@ class ModelsManager:
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    tasks = [loop.create_task(ModelsManager().update_materials())]
+    tasks = [loop.create_task(ModelsManager().update_materials()) for _ in range(10)]
     loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
     # m.update_models()

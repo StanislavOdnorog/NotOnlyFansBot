@@ -22,6 +22,6 @@ class Queries:
     @staticmethod
     def view_models():
         with Cursor() as c:
-            c.execute("SELECT Model FROM public.notonlyfans_db")
+            c.execute("SELECT Model FROM public.notonlyfans_db ORDER BY photos DESC")
             record_table = c.fetchall()
         return record_table
