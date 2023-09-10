@@ -66,7 +66,7 @@ NotOnlyFansBot/
 
 To run the bot, execute the bot.py script:
   
-      python src/bot.py
+    python src/bot.py
 
 ## Contributing
 
