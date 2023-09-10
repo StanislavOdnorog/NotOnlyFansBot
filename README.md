@@ -7,27 +7,27 @@ NotOnlyFansBot is a Python bot designed to scrape and collect data from OnlyFans
 The project is organized into the following directory structure:
 
 NotOnlyFansBot/
-│
-├── src/
-│ ├── core/
-│ │ ├── config.py
-│ │ ├── logger.py
-│ │
-│ ├── db/
-│ │ ├── cursor.py
-│ │ ├── database.py
-│ │ ├── queries.py
-│ │
-│ ├── .env
-│ ├── .env.example
-│ ├── bot.py
-│ ├── db_manager.py
-│ ├── materials_manager.py
-│
-├── venv/ (virtual environment - ignored)
-├── .gitignore (ignored)
-├── README.md
-├── requirements.txt
+│    
+├── src/    
+│ ├── core/    
+│ │ ├── config.py    
+│ │ ├── logger.py    
+│ │    
+│ ├── db/    
+│ │ ├── cursor.py    
+│ │ ├── database.py    
+│ │ ├── queries.py    
+│ │    
+│ ├── .env    
+│ ├── .env.example    
+│ ├── bot.py    
+│ ├── db_manager.py    
+│ ├── materials_manager.py    
+│    
+├── venv/ (virtual environment - ignored)    
+├── .gitignore (ignored)    
+├── README.md    
+├── requirements.txt    
 
 
 ## Getting Started
