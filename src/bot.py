@@ -47,9 +47,10 @@ def register_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = [
         "Найти модель",
-        "Показать случайную модель",
+        "Случайная модель",
         "Получить фото",
         "Получить видео",
+        "Текущая модель",
     ]
     keyboard.add(*buttons)
     return keyboard
@@ -85,7 +86,23 @@ class NotOnlyFansBot:
         )
 
     @staticmethod
-    @dp.message_handler(lambda message: message.text == "Показать случайную модель")
+    @dp.message_handler(lambda message: message.text == "Текущая модель")
+    async def process_current_model_command(message: types.Message, state: FSMContext):
+        async with state.proxy() as data:
+            try:
+                current_model = data["_current_model"]
+            except KeyError:
+                await NotOnlyFansBot.bot.send_message(
+                    message.from_user.id,
+                    "Модель не выбрана",
+                    reply_markup=NotOnlyFansBot.keyboard,
+                )
+                return
+        message.text = current_model[0]
+        await NotOnlyFansBot.reg_name(message=message, state=state)
+
+    @staticmethod
+    @dp.message_handler(lambda message: message.text == "Случайная модель")
     async def process_random_command(message: types.Message, state: FSMContext):
         model = Queries.get_random_model()
         async with state.proxy() as data:
@@ -97,7 +114,6 @@ class NotOnlyFansBot:
             caption=new_message,
             reply_markup=NotOnlyFansBot.keyboard,
         )
-
         await state.finish()
 
     @staticmethod
@@ -121,7 +137,6 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-
         media_group = types.MediaGroup()
         materials = []
         for _ in range(5):
@@ -130,11 +145,13 @@ class NotOnlyFansBot:
                     current_model[0], current_model[1], "photos"
                 )
             )
+        try:
+            materials = set(materials)
+        except TypeError as Err:
+            logger.error(Err)
 
-        materials = set(materials)
         for material in materials:
             media_group.attach_photo(material)
-
         await NotOnlyFansBot.bot.send_media_group(
             message.from_user.id,
             media=media_group,
@@ -153,11 +170,9 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-
         video_img, video_url = await MaterialsManager().get_material_url(
             current_model[0], current_model[2], "videos"
         )
-
         ikb = InlineKeyboardMarkup().add(
             InlineKeyboardButton(
                 text="Переход к видео",

@@ -33,22 +33,22 @@ class MaterialsManager:
             url = config.MODELS_URL + f"{model}"
             href = await self.get_response(url, materials_num, material_type)
 
-            while True:
-                try:
-                    href = href[0].json()[
-                        await self.get_random_material(materials_num)
-                    ]["thumbnail"]
-                except IndexError as Err:
-                    logger.error(Err)
-                    continue
-                break
-
+            try:
+                href = href[0].json()[await self.get_random_material(materials_num)][
+                    "thumbnail"
+                ]
+            except IndexError as Err:
+                logger.error(Err)
         if material_type == "videos":
             video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
             video_url = await self.get_short_link(video_url)
             response = href, video_url
         elif material_type == "photos":
-            response = href[:-8] + ".jpg"
+            try:
+                response = href[:-8] + ".jpg"
+            except TypeError as Err:
+                logger.error(Err)
+                response = href
 
         return response
 
@@ -104,7 +104,3 @@ class MaterialsManager:
         )[0]
 
         return response.json()["short_url"]
-
-
-# if __name__ == "__main__":
-#     print(MaterialsManager().get_material_url("amouranth", "452", "videos"))
