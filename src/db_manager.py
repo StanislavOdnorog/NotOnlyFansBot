@@ -3,7 +3,6 @@ import asyncio
 import grequests
 from alive_progress import alive_bar
 from bs4 import BeautifulSoup
-
 from core.config import config
 from core.logger import logger
 from db.database import Database
@@ -11,11 +10,11 @@ from db.queries import Queries
 
 
 class ModelsManager:
-    def __init__(self):
+    async def __init__(self):
+        await self.get_pages_number()
         self.initialize_database()
-        self.get_pages_number()
 
-    def get_pages_number(self):
+    async def get_pages_number(self):
         response = grequests.map([grequests.get(config.MAIN_URL)])[0]
         soup = BeautifulSoup(response.text, "html.parser")
         self.pages = int(soup.find_all("a", class_="page-link")[2].text)
@@ -97,6 +96,3 @@ if __name__ == "__main__":
     tasks = [loop.create_task(ModelsManager().update_materials()) for _ in range(10)]
     loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
-    # m.update_models()
-    # m.update_materials()
-    # m.format_all_bio()

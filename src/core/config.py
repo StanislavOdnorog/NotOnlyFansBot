@@ -3,6 +3,8 @@ import pydantic_settings
 
 class Config(pydantic_settings.BaseSettings):
     BOT_API_KEY: str
+    SHORT_LINK_API_TOKEN: str
+    SHORT_LINK_API_SITE: str
     DATABASE: str
     DB_HOST: str
     DB_USER: str
@@ -10,9 +12,12 @@ class Config(pydantic_settings.BaseSettings):
     PAGE_URL: str
     MAIN_URL: str
     MODELS_URL: str
+    NO_MATERIAL_URL: str
+    PLAYER_REF: str
+    USER_AGENT_HEADER: str
 
     model_config = pydantic_settings.SettingsConfigDict(
-        env_file="../.env", case_sensitive=True
+        env_file=".env", case_sensitive=True
     )
 
 
