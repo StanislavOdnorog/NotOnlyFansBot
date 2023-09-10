@@ -56,8 +56,8 @@ NotOnlyFansBot/
    
   4. Install the required packages:
 
-    ```bash
-    pip install -r requirements.txt
+       ```bash
+       pip install -r requirements.txt
     
   5. Copy .env.example to .env and configure it according to your needs:
   
@@ -72,8 +72,8 @@ NotOnlyFansBot/
 
 To run the bot, execute the bot.py script:
   
-    ```bash
-    python src/bot.py
+      ```bash
+      python src/bot.py
 
 ## Contributing
 
