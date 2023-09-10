@@ -34,17 +34,17 @@ NotOnlyFansBot/
 
 1. Clone the repository to your local machine:
 
-         git clone https://github.com/yourusername/NotOnlyFansBot.git
+       git clone https://github.com/yourusername/NotOnlyFansBot.git
 
 2. Create a virtual environment (recommended):
 
-         python -m venv venv
+       python -m venv venv
 
 3. Activate the virtual environment:
    
    a) On Windows:
    
-       venv\Scripts\activate
+           venv\Scripts\activate
 
     b) On Windows:
 
@@ -52,11 +52,11 @@ NotOnlyFansBot/
    
   5. Install the required packages:
 
-           pip install -r requirements.txt
+         pip install -r requirements.txt
     
   6. Copy .env.example to .env and configure it according to your needs:
   
-            cp .env.example .env
+         cp .env.example .env
 
   7. Edit the .env file to specify the website you want to parse
     
