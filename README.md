@@ -34,45 +34,38 @@ NotOnlyFansBot/
 
 1. Clone the repository to your local machine:
 
-   ```bash
-   git clone https://github.com/yourusername/NotOnlyFansBot.git
+         git clone https://github.com/yourusername/NotOnlyFansBot.git
 
 2. Create a virtual environment (recommended):
 
-   ```bash
-   python -m venv venv
+         python -m venv venv
 
 3. Activate the virtual environment:
    
    a) On Windows:
    
-       ```bash
        venv\Scripts\activate
 
     b) On Windows:
-   
-        ```bash
-         source venv/bin/activate
-   
-  4. Install the required packages:
 
-       ```bash
-       pip install -r requirements.txt
+            source venv/bin/activate
+   
+  5. Install the required packages:
+
+           pip install -r requirements.txt
     
-  5. Copy .env.example to .env and configure it according to your needs:
+  6. Copy .env.example to .env and configure it according to your needs:
   
-      ```bash
-      cp .env.example .env
+            cp .env.example .env
 
-  6. Edit the .env file to specify the website you want to parse
+  7. Edit the .env file to specify the website you want to parse
     
-  7. Customize parsing methods, as required
+  8. Customize parsing methods, as required
 
 ## Running the Bot
 
 To run the bot, execute the bot.py script:
   
-      ```bash
       python src/bot.py
 
 ## Contributing
