@@ -1,7 +1,9 @@
 import random
 
 import grequests
+
 from core.config import config
+from core.logger import logger
 
 
 class MaterialsManager:
@@ -24,15 +26,22 @@ class MaterialsManager:
         if materials_num == 0:
             if material_type == "videos":
                 return config.NO_MATERIAL_URL, None
-            else:
+            elif material_type == "photos":
                 return config.NO_MATERIAL_URL
 
         else:
             url = config.MODELS_URL + f"{model}"
             href = await self.get_response(url, materials_num, material_type)
-            href = href[0].json()[await self.get_random_material(materials_num)][
-                "thumbnail"
-            ]
+
+            while True:
+                try:
+                    href = href[0].json()[
+                        await self.get_random_material(materials_num)
+                    ]["thumbnail"]
+                except IndexError as Err:
+                    logger.error(Err)
+                    continue
+                break
 
         if material_type == "videos":
             video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
