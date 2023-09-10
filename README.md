@@ -44,11 +44,11 @@ NotOnlyFansBot/
    
    a) On Windows:
    
-           venv\Scripts\activate
+       venv\Scripts\activate
 
     b) On Windows:
 
-            source venv/bin/activate
+       source venv/bin/activate
    
   5. Install the required packages:
 
