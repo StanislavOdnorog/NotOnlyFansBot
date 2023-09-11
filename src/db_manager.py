@@ -104,7 +104,7 @@ if __name__ == "__main__":
         loop.run_until_complete(asyncio.wait(tasks))
         
     if "-d" in sys.argv or "--data" in sys.argv:
-        tasks = [loop.create_task(db.update_materials) for _ in range(60)]
+        tasks = [loop.create_task(db.update_materials()) for _ in range(60)]
         loop.run_until_complete(asyncio.wait(tasks))
 
     loop.close()
