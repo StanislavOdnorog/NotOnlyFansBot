@@ -1,6 +1,3 @@
-import asyncio
-import sys
-
 import grequests
 from alive_progress import alive_bar
 from bs4 import BeautifulSoup
@@ -94,17 +91,3 @@ class DBManager:
         material = soup.find("img", class_="model-thumbnail")["src"]
 
         return material
-
-
-if __name__ == "__main__":
-    db = DBManager()
-    loop = asyncio.get_event_loop()
-    if "-m" in sys.argv or "--materials" in sys.argv:
-        tasks = [loop.create_task(db.update_models())]
-        loop.run_until_complete(asyncio.wait(tasks))
-
-    if "-d" in sys.argv or "--data" in sys.argv:
-        tasks = [loop.create_task(db.update_materials()) for _ in range(60)]
-        loop.run_until_complete(asyncio.wait(tasks))
-
-    loop.close()

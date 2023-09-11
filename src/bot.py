@@ -1,3 +1,5 @@
+import asyncio
+import sys
 import typing
 from asyncio import Lock
 
@@ -234,4 +236,12 @@ class NotOnlyFansBot:
 
 
 if __name__ == "__main__":
-    executor.start_polling(dispatcher=NotOnlyFansBot.dp, skip_updates=True)
+    if "-u" in sys.argv or "--update" in sys.argv:
+        db = DBManager()
+        loop = asyncio.get_event_loop()
+        tasks = [loop.create_task(db.update_models())]
+        tasks.append(loop.create_task(db.update_materials()) for _ in range(60))
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
+    else:
+        executor.start_polling(dispatcher=NotOnlyFansBot.dp, skip_updates=True)
