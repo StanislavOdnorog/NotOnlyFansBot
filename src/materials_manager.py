@@ -10,7 +10,9 @@ class MaterialsManager:
     def __init__(self):
         pass
 
-    async def get_material_url(self, model, materials_num, material_type):
+    async def get_material_url(
+        self, model, materials_num, material_type, current_number
+    ):
         """
         Function return url of materials for given model according to materials number and size
 
@@ -31,29 +33,30 @@ class MaterialsManager:
 
         else:
             url = config.MODELS_URL + f"{model}"
-            href = await self.get_response(url, materials_num, material_type)
 
-            try:
-                href = href[0].json()[await self.get_random_material(materials_num)][
-                    "thumbnail"
-                ]
-            except IndexError as Err:
-                logger.error(Err)
-        if material_type == "videos":
-            video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
-            video_url = await self.get_short_link(video_url)
-            response = href, video_url
-        elif material_type == "photos":
-            try:
-                response = href[:-8] + ".jpg"
-            except TypeError as Err:
-                logger.error(Err)
-                response = href
+            href = await self.get_response(
+                url, materials_num, material_type, current_number
+            )
 
-        return response
+            href = href[0].json()[
+                await self.get_material_number(materials_num, current_number)
+            ]["thumbnail"]
 
-    async def get_response(self, url, materials_num, material_type):
-        random_page = await self.get_random_page(materials_num)
+            if material_type == "videos":
+                video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
+                video_url = await self.get_short_link(video_url)
+                response = href, video_url
+            elif material_type == "photos":
+                try:
+                    response = href[:-8] + ".jpg"
+                except TypeError as Err:
+                    logger.error(Err)
+                    response = href
+
+            return response
+
+    async def get_response(self, url, materials_num, material_type, current_number):
+        random_page = await self.get_page_number(materials_num, current_number)
         attributes = await self.get_req_params(random_page, material_type)
         response = grequests.map(
             [
@@ -66,19 +69,14 @@ class MaterialsManager:
         )
         return response
 
-    async def get_random_page(self, materials_num):
-        if materials_num % 48 == 0 or materials_num // 48 == 0:
-            random_page = random.randint(1, materials_num // 48 + 1)
-        else:
-            random_page = materials_num // 48
+    async def get_page_number(self, materials_num, current_number):
+        current_number %= materials_num
+        current_number //= 49
+        return current_number + 1
 
-        return random_page
-
-    async def get_random_material(self, materials_num):
-        random_photo = random.randint(0, 48)
-        if materials_num % 48 == 0 or materials_num // 48 == 0:
-            random_photo = random_photo % materials_num
-        return random_photo
+    async def get_material_number(self, materials_num, current_number):
+        current_number %= materials_num
+        return current_number % 49
 
     async def get_req_params(self, random_page, material_type):
         query_params = {

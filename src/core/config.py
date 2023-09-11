@@ -18,7 +18,7 @@ class Config(pydantic_settings.BaseSettings):
     USER_AGENT_HEADER: str
 
     model_config = pydantic_settings.SettingsConfigDict(
-        env_file="../.env", case_sensitive=True
+        env_file=".env", case_sensitive=True
     )
 
 

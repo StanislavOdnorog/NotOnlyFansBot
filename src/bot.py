@@ -80,7 +80,7 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(commands=["start"])
     async def process_start_command(message: types.Message):
-        start_message = "Добро пожаловать к NotOnlyFansBot!\nЗдесь ты можешь найти почти любую OnlyFans модель и скачать весь материал по ней/нему.\nПожалуйста, воспользуйся командами для начала"
+        start_message = "Добро пожаловать к NotOnlyFans!\nЗдесь ты можешь найти слитые материалы на моделей с OnlyFans\nПожалуйста, воспользуйся командами для начала"
         await NotOnlyFansBot.bot.send_message(
             message.from_user.id, start_message, reply_markup=NotOnlyFansBot.keyboard
         )
@@ -107,6 +107,10 @@ class NotOnlyFansBot:
         model = Queries.get_random_model()
         async with state.proxy() as data:
             data["_current_model"] = model
+            try:
+                current_number = data["_current_number"]
+            except:
+                data["_current_number"] = 0
         new_message = f"💖    Модель: {model[0]}    💖\n\n📷   Количество фото: {model[1]}    📷\n📽   Количество видео: {model[2]}    📽\n\n💌   Текст профиля    💌\n\n{NotOnlyFansBot.clean_bio(model[3])}"
         await NotOnlyFansBot.bot.send_photo(
             message.from_user.id,
@@ -130,6 +134,8 @@ class NotOnlyFansBot:
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
+                current_number = data["_current_number"]
+                current_number %= 100000
             except KeyError:
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,
@@ -137,25 +143,27 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-        media_group = types.MediaGroup()
-        materials = []
-        for _ in range(5):
-            materials.append(
-                await MaterialsManager().get_material_url(
-                    current_model[0], current_model[1], "photos"
+            media_group = types.MediaGroup()
+            materials = []
+            for _ in range(5):
+                materials.append(
+                    await MaterialsManager().get_material_url(
+                        current_model[0], current_model[1], "photos", current_number
+                    )
                 )
-            )
-        try:
-            materials = set(materials)
-        except TypeError as Err:
-            logger.error(Err)
+                data["_current_number"] = current_number + 1
+                current_number += 1
+            try:
+                materials = set(materials)
+            except TypeError as Err:
+                logger.error(Err)
 
-        for material in materials:
-            media_group.attach_photo(material)
-        await NotOnlyFansBot.bot.send_media_group(
-            message.from_user.id,
-            media=media_group,
-        )
+            for material in materials:
+                media_group.attach_photo(material)
+            await NotOnlyFansBot.bot.send_media_group(
+                message.from_user.id,
+                media=media_group,
+            )
 
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить видео")
@@ -163,6 +171,8 @@ class NotOnlyFansBot:
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
+                current_number = data["_current_number"]
+                current_number %= 100000
             except KeyError:
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,
@@ -170,29 +180,34 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-        video_img, video_url = await MaterialsManager().get_material_url(
-            current_model[0], current_model[2], "videos"
-        )
-        ikb = InlineKeyboardMarkup().add(
-            InlineKeyboardButton(
-                text="Переход к видео",
-                web_app=WebAppInfo(
-                    url=video_url if video_url else config.NO_MATERIAL_URL
-                ),
+            video_img, video_url = await MaterialsManager().get_material_url(
+                current_model[0], current_model[2], "videos", current_number
             )
-        )
-        await NotOnlyFansBot.bot.send_photo(
-            message.from_user.id, photo=video_img, reply_markup=ikb
-        )
+            data["_current_number"] = current_number + 1
+            ikb = InlineKeyboardMarkup().add(
+                InlineKeyboardButton(
+                    text="Переход к видео",
+                    web_app=WebAppInfo(
+                        url=video_url if video_url else config.NO_MATERIAL_URL
+                    ),
+                )
+            )
+            await NotOnlyFansBot.bot.send_photo(
+                message.from_user.id, photo=video_img, reply_markup=ikb
+            )
 
     @staticmethod
     @dp.message_handler(content_types="text", state=RegisterMessages.await_name)
     async def reg_name(message: types.Message, state: FSMContext):
         async with NotOnlyFansBot.lock:
-            model = Queries.get_model(message.text)
+            model = Queries.get_model(message.text.lower())
             if model:
                 async with state.proxy() as data:
                     data["_current_model"] = model
+                    try:
+                        current_number = data["_current_number"]
+                    except:
+                        data["_current_number"] = 0
                 new_message = f"💖    Модель: {model[0]}    💖\n\n📷   Количество фото: {model[1]}    📷\n📽   Количество видео: {model[2]}    📽\n\n💌   Текст профиля    💌\n\n{NotOnlyFansBot.clean_bio(model[3])}"
                 await NotOnlyFansBot.bot.send_photo(
                     message.from_user.id,
