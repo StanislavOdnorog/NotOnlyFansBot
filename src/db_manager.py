@@ -32,7 +32,7 @@ class DBManager:
 
     async def update_models(self):
         await self.initialize_manager()
-        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages + 1)]
+        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages)]
         rs = [grequests.get(url) for url in urls]
 
         with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
@@ -42,6 +42,7 @@ class DBManager:
                 bar()
 
     async def update_materials(self):
+        await self.initialize_manager()
         urls = Queries.view_models()[:500]
         with alive_bar(len(urls), force_tty=True, title="Updating Materials:") as bar:
             rs = (grequests.get(config.MODELS_URL + str(*url)) for url in urls)
@@ -96,11 +97,14 @@ class DBManager:
 
 
 if __name__ == "__main__":
+    db = DBManager()
     loop = asyncio.get_event_loop()
-    if "--models" or "-m" in sys.argv:
-        tasks = [DBManager().update_models()]
+    if "-m" in sys.argv or "--materials" in sys.argv:
+        tasks = [loop.create_task(db.update_models())]
         loop.run_until_complete(asyncio.wait(tasks))
-    if "--data" or "-d" in sys.argv:
-        tasks = [loop.create_task(DBManager().update_materials()) for _ in range(60)]
+        
+    if "-d" in sys.argv or "--data" in sys.argv:
+        tasks = [loop.create_task(db.update_materials) for _ in range(60)]
         loop.run_until_complete(asyncio.wait(tasks))
+
     loop.close()
