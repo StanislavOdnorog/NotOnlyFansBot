@@ -11,7 +11,7 @@ from db.queries import Queries
 
 
 class DBManager:
-    async def __init__(self):
+    async def initialize_manager(self):
         await self.get_pages_number()
         self.initialize_database()
 
@@ -30,6 +30,7 @@ class DBManager:
         )
 
     async def update_models(self):
+        await self.initialize_manager()
         urls = [config.PAGE_URL + str(page) for page in range(1, self.pages + 1)]
         rs = [grequests.get(url) for url in urls]
 
@@ -95,6 +96,10 @@ class DBManager:
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    tasks = [loop.create_task(DBManager().update_materials()) for _ in range(10)]
+    tasks = [DBManager().update_models()]
+    loop.run_until_complete(asyncio.wait(tasks))
+
+    loop = asyncio.get_event_loop()
+    tasks = [loop.create_task(DBManager().update_materials()) for _ in range(60)]
     loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
