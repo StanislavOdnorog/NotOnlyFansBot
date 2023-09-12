@@ -44,7 +44,6 @@ class MaterialsManager:
 
             if material_type == "videos":
                 video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
-                video_url = await self.get_short_link(video_url)
                 response = href, video_url
             elif material_type == "photos":
                 try:
@@ -89,16 +88,3 @@ class MaterialsManager:
             "X-Requested-With": "XMLHttpRequest",
         }
         return query_params, headers
-
-    async def get_short_link(self, url):
-        query_data = {"url": url}
-        query_headers = {config.SHORT_LINK_API_DATA: config.SHORT_LINK_API_TOKEN}
-        response = grequests.map(
-            [
-                grequests.post(
-                    config.SHORT_LINK_API_SITE, data=query_data, headers=query_headers
-                )
-            ]
-        )[0]
-
-        return response.json()["short_url"]

@@ -11,12 +11,12 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
 
-from support import Support
 from core.config import config
 from core.logger import logger
 from db.queries import Queries
 from db_manager import DBManager
 from materials_manager import MaterialsManager
+from support import Support
 
 
 # CLass for variables in the date that start with _ will be indelible
@@ -53,7 +53,7 @@ def register_keyboard():
         "Случайная модель",
         "Текущая модель",
         "Получить видео",
-        "Получить фото"
+        "Получить фото",
     ]
     keyboard.add(*buttons)
     return keyboard

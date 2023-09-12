@@ -3,6 +3,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from core.config import config
 
+
 class Support:
     # Start bot's essentials
     bot = Bot(config.SUP_BOT_API_KEY)
@@ -18,7 +19,9 @@ class Support:
     @dp.message_handler()
     async def process_user_messages(message: types.Message):
         if str(message.chat.id) != config.SUP_CHAT_ID:
-            await Support.bot.send_message(config.SUP_CHAT_ID, str(message.from_user.id) + ": " + message.text)
+            await Support.bot.send_message(
+                config.SUP_CHAT_ID, str(message.from_user.id) + ": " + message.text
+            )
         elif str(message.chat.id) == config.SUP_CHAT_ID:
             reply_id = message.reply_to_message.text.split(":")[0]
             await Support.bot.send_message(reply_id, message.text)
