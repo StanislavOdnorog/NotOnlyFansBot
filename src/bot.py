@@ -11,6 +11,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
 
+from support import Support
 from core.config import config
 from core.logger import logger
 from db.queries import Queries
@@ -243,5 +244,7 @@ if __name__ == "__main__":
         tasks.append(loop.create_task(db.update_materials()) for _ in range(60))
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
+    elif "-s" in sys.argv or "--support" in sys.argv:
+        executor.start_polling(dispatcher=Support.dp, skip_updates=True)
     else:
         executor.start_polling(dispatcher=NotOnlyFansBot.dp, skip_updates=True)

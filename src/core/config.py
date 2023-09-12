@@ -3,6 +3,8 @@ import pydantic_settings
 
 class Config(pydantic_settings.BaseSettings):
     BOT_API_KEY: str
+    SUP_BOT_API_KEY: str
+    SUP_CHAT_ID: str
     SHORT_LINK_API_TOKEN: str
     SHORT_LINK_API_SITE: str
     SHORT_LINK_API_DATA: str
