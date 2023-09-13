@@ -221,9 +221,17 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
             else:
+                models_alike_response = Queries.get_alike_models(message.text.lower())
+                no_model_message = "Модель не найдена 😓\n"
+
+                if models_alike_response:
+                    no_model_message += "\nПохожие модели:\n - " + "\n - ".join(
+                        model[0] for model in models_alike_response
+                    )
+
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,
-                    "Модель не найдена. Попробуй снова",
+                    no_model_message,
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
 

@@ -1,5 +1,3 @@
-import random
-
 import grequests
 
 from core.config import config

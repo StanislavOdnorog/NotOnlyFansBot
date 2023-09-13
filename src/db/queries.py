@@ -39,3 +39,13 @@ class Queries:
                 )
                 record = c.fetchone()
             return record
+
+    @staticmethod
+    def get_alike_models(model):
+        if model:
+            with Cursor() as c:
+                c.execute(
+                    f"SELECT * from notonlyfans_db where levenshtein(model, '{model}') between 1 and 3 order by levenshtein(model, '{model}') asc limit 5"
+                )
+                record = c.fetchall()
+            return record
