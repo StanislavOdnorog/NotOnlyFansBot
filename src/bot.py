@@ -2,12 +2,14 @@ import asyncio
 import sys
 import typing
 from asyncio import Lock
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types.message import ContentType
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
 
@@ -66,6 +68,9 @@ class NotOnlyFansBot:
     keyboard = register_keyboard()
     lock = Lock()
     DBManager.initialize_database()
+    PRICE = types.LabeledPrice(
+        label="Подписка на 1 месяц", amount=config.SUBSCRIPTION_COST
+    )
 
     @staticmethod
     def clean_bio(bio):
@@ -83,14 +88,57 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(commands=["start"])
     async def process_start_command(message: types.Message):
-        start_message = "Добро пожаловать к NotOnlyFans!\nЗдесь ты можешь найти слитые материалы на моделей с OnlyFans\nПожалуйста, воспользуйся командами для начала"
+        Queries.add_user(str(message.from_user.id))
+        start_message = f"Добро пожаловать к NotOnlyFans!\nЗдесь ты можешь найти слитые материалы на моделей c OnlyFans"
         await NotOnlyFansBot.bot.send_message(
             message.from_user.id, start_message, reply_markup=NotOnlyFansBot.keyboard
         )
 
     @staticmethod
+    @dp.message_handler(commands=["sub_end"])
+    async def process_subend_command(message: types.Message):
+        sub_end_date = Queries.get_endsub_date(str(message.from_user.id))
+        new_message = f"Дата истечения подписки: {sub_end_date}"
+        await NotOnlyFansBot.bot.send_message(
+            message.from_user.id, new_message, reply_markup=NotOnlyFansBot.keyboard
+        )
+
+    @staticmethod
+    @dp.message_handler(commands=["subscribe"])
+    async def process_subscribe_command(message: types.Message):
+        await NotOnlyFansBot.bot.send_invoice(
+            message.from_user.id,
+            title="NotOnlyFansBot",
+            description="Подписка на NotOnlyFansBot на 1 месяц",
+            provider_token=config.PAYMENTS_TOKEN,
+            currency="rub",
+            photo_url=config.PAYMENT_IMG,
+            photo_width=416,
+            photo_height=234,
+            is_flexible=False,
+            prices=[NotOnlyFansBot.PRICE],
+            start_parameter="one-month-subscription",
+            payload="test-invoice-payload",
+        )
+
+    @dp.pre_checkout_query_handler(lambda query: True)
+    async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
+        await NotOnlyFansBot.bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+
+    @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
+    async def register_successful_payment(message: types.Message):
+        Queries.prolong_subsription(str(message.from_user.id))
+
+    @staticmethod
     @dp.message_handler(lambda message: message.text == "Текущая модель")
     async def process_current_model_command(message: types.Message, state: FSMContext):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
@@ -107,6 +155,13 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Случайная модель")
     async def process_random_command(message: types.Message, state: FSMContext):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         model = Queries.get_random_model()
         async with state.proxy() as data:
             data["_current_model"] = model
@@ -126,6 +181,13 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Найти модель")
     async def process_find_command(message: types.Message):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         await NotOnlyFansBot.bot.send_message(
             message.from_user.id, "Введи ник модели на OnlyFans: "
         )
@@ -134,6 +196,13 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить фото")
     async def process_get_photo_command(message: types.Message, state: FSMContext):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
@@ -172,6 +241,13 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить видео")
     async def process_get_video_command(message: types.Message, state: FSMContext):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
@@ -204,6 +280,13 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(content_types="text", state=RegisterMessages.await_name)
     async def reg_name(message: types.Message, state: FSMContext):
+        if not Queries.is_subsribed(str(message.from_user.id)):
+            await NotOnlyFansBot.bot.send_message(
+                message.from_user.id,
+                "Подписка истекла, воспользуйтесь командой /subscribe для продления подписки",
+                reply_markup=NotOnlyFansBot.keyboard,
+            )
+            return
         async with NotOnlyFansBot.lock:
             model = Queries.get_model(message.text.lower())
             if model:

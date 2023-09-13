@@ -49,3 +49,43 @@ class Queries:
                 )
                 record = c.fetchall()
             return record
+
+    @staticmethod
+    def add_user(user_id):
+        if user_id:
+            with Cursor() as c:
+                c.execute(
+                    f"INSERT INTO users_db(user_id, user_endsub) VALUES ('{user_id}', CURRENT_DATE + interval '5 day') ON CONFLICT DO NOTHING"
+                )
+
+    @staticmethod
+    def prolong_subsription(user_id):
+        if user_id:
+            with Cursor() as c:
+                c.execute(
+                    f"UPDATE users_db SET user_endsub = CURRENT_DATE WHERE user_id = '{user_id}' AND user_endsub < CURRENT_DATE"
+                )
+                c.execute(
+                    f"UPDATE users_db SET user_endsub = user_endsub + interval '1 month' WHERE user_id = '{user_id}'"
+                )
+
+    @staticmethod
+    def is_subsribed(user_id):
+        if user_id:
+            with Cursor() as c:
+                c.execute(
+                    f"SELECT EXISTS(SELECT * FROM users_db where user_id='{user_id}' and user_endsub >= CURRENT_DATE)"
+                )
+                record = c.fetchone()
+            return record[0]
+
+    @staticmethod
+    def get_endsub_date(user_id):
+        if user_id:
+            with Cursor() as c:
+                c.execute(
+                    f"UPDATE users_db SET user_endsub = CURRENT_DATE  - interval '1 day' WHERE user_id = '{user_id}' AND user_endsub < CURRENT_DATE"
+                )
+                c.execute(f"SELECT user_endsub FROM users_db where user_id='{user_id}'")
+                record = c.fetchone()
+            return record[0].strftime("%d.%m.%y")

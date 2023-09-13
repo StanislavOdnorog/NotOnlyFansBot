@@ -16,6 +16,9 @@ class Config(pydantic_settings.BaseSettings):
     PLAYER_REF: str
     PLAYER_PARAMS: str
     USER_AGENT_HEADER: str
+    SUBSCRIPTION_COST: int
+    PAYMENTS_TOKEN: str
+    PAYMENT_IMG: str
 
     model_config = pydantic_settings.SettingsConfigDict(
         env_file=".env", case_sensitive=True

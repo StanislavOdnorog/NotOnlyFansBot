@@ -12,7 +12,7 @@ class Support:
     @staticmethod
     @dp.message_handler(commands=["start"])
     async def process_start_command(message: types.Message):
-        start_message = "Добро пожаловать к NotOnlySupport!\nЗдесь ты можешь оставить отзыв или жалобу на OnlyFansBot. Наша поддержка обязательно ответит на твой вопрос, обращайся!"
+        start_message = "Добро пожаловать к NotOnlySupport!\nЗдесь ты можешь оставить отзыв или жалобу на NotOnlyFansBot. Наша поддержка обязательно ответит на твой вопрос, обращайся!"
         await Support.bot.send_message(message.from_user.id, start_message)
 
     @staticmethod
