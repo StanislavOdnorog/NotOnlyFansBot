@@ -43,7 +43,7 @@ class MaterialsManager:
             ]["thumbnail"]
 
             if material_type == "videos":
-                video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2]
+                video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2] + config.PLAYER_PARAMS
                 response = href, video_url
             elif material_type == "photos":
                 try:

@@ -14,6 +14,7 @@ class Config(pydantic_settings.BaseSettings):
     MODELS_URL: str
     NO_MATERIAL_URL: str
     PLAYER_REF: str
+    PLAYER_PARAMS: str
     USER_AGENT_HEADER: str
 
     model_config = pydantic_settings.SettingsConfigDict(
