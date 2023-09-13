@@ -139,6 +139,7 @@ class NotOnlyFansBot:
                 current_model = data["_current_model"]
                 current_number = data["_current_number"]
                 current_number %= 100000
+                data["_current_number"] = current_number
             except KeyError:
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,
@@ -176,6 +177,7 @@ class NotOnlyFansBot:
                 current_model = data["_current_model"]
                 current_number = data["_current_number"]
                 current_number %= 100000
+                data["_current_number"] = current_number
             except KeyError:
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,

@@ -38,12 +38,18 @@ class MaterialsManager:
                 url, materials_num, material_type, current_number
             )
 
-            href = href[0].json()[
+            href = href.json()[
                 await self.get_material_number(materials_num, current_number)
             ]["thumbnail"]
 
             if material_type == "videos":
-                video_url = config.PLAYER_REF + url + "/video/" + href.split("/")[-2] + config.PLAYER_PARAMS
+                video_url = (
+                    config.PLAYER_REF
+                    + url
+                    + "/video/"
+                    + href.split("/")[-2]
+                    + config.PLAYER_PARAMS
+                )
                 response = href, video_url
             elif material_type == "photos":
                 try:
@@ -55,8 +61,8 @@ class MaterialsManager:
             return response
 
     async def get_response(self, url, materials_num, material_type, current_number):
-        random_page = await self.get_page_number(materials_num, current_number)
-        attributes = await self.get_req_params(random_page, material_type)
+        page = await self.get_page_number(materials_num, current_number)
+        attributes = await self.get_req_params(page, material_type)
         response = grequests.map(
             [
                 grequests.get(
@@ -66,7 +72,7 @@ class MaterialsManager:
                 )
             ]
         )
-        return response
+        return response[0]
 
     async def get_page_number(self, materials_num, current_number):
         current_number %= materials_num
@@ -75,11 +81,11 @@ class MaterialsManager:
 
     async def get_material_number(self, materials_num, current_number):
         current_number %= materials_num
-        return current_number % 49
+        return current_number % 48
 
-    async def get_req_params(self, random_page, material_type):
+    async def get_req_params(self, page, material_type):
         query_params = {
-            "page": str(random_page),
+            "page": str(page),
             "type": material_type,
             "order": "0",
         }
