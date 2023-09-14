@@ -218,7 +218,10 @@ class NotOnlyFansBot:
                 return
             media_group = types.MediaGroup()
             materials = []
-            for _ in range(5):
+            msg = await NotOnlyFansBot.bot.send_message(chat_id=message.from_user.id,
+                                                  text="Получаем фото [0]")
+            for index in range(5):
+                await msg.edit_text(f"Получаем фото [{index+1}]")
                 materials.append(
                     await MaterialsManager().get_material_url(
                         current_model[0], current_model[1], "photos", current_number
@@ -231,12 +234,13 @@ class NotOnlyFansBot:
             except TypeError as Err:
                 logger.error(Err)
 
-            for material in materials:
-                media_group.attach_photo(material)
+            [media_group.attach_photo(material) for material in materials]
+
             await NotOnlyFansBot.bot.send_media_group(
-                message.from_user.id,
+                chat_id=message.from_user.id,
                 media=media_group,
             )
+            await msg.delete()
 
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить видео")

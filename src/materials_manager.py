@@ -28,7 +28,6 @@ class MaterialsManager:
                 return config.NO_MATERIAL_URL, None
             elif material_type == "photos":
                 return config.NO_MATERIAL_URL
-
         else:
             url = config.MODELS_URL + f"{model}"
 
@@ -60,15 +59,16 @@ class MaterialsManager:
 
     async def get_response(self, url, materials_num, material_type, current_number):
         page = await self.get_page_number(materials_num, current_number)
-        attributes = await self.get_req_params(page, material_type)
+        attributes =  await self.get_req_params(page, material_type)
         response = grequests.map(
             [
                 grequests.get(
                     url,
                     params=attributes[0],
-                    headers=attributes[1],
+                    headers=attributes[1]
                 )
             ]
+            , size=5
         )
         return response[0]
 
