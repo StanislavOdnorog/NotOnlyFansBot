@@ -71,6 +71,7 @@ class NotOnlyFansBot:
     PRICE = types.LabeledPrice(
         label="Подписка на 1 месяц", amount=config.SUBSCRIPTION_COST
     )
+    m_manager = MaterialsManager()
 
     @staticmethod
     def clean_bio(bio):
@@ -203,12 +204,12 @@ class NotOnlyFansBot:
                 reply_markup=NotOnlyFansBot.keyboard,
             )
             return
+
         async with state.proxy() as data:
             try:
                 current_model = data["_current_model"]
                 current_number = data["_current_number"]
-                current_number %= 100000
-                data["_current_number"] = current_number
+                data["_current_number"] = current_number + 5
             except KeyError:
                 await NotOnlyFansBot.bot.send_message(
                     message.from_user.id,
@@ -216,31 +217,24 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-            media_group = types.MediaGroup()
-            materials = []
-            msg = await NotOnlyFansBot.bot.send_message(chat_id=message.from_user.id,
-                                                  text="Получаем фото [0]")
-            for index in range(5):
-                await msg.edit_text(f"Получаем фото [{index+1}]")
-                materials.append(
-                    await MaterialsManager().get_material_url(
-                        current_model[0], current_model[1], "photos", current_number
-                    )
-                )
-                data["_current_number"] = current_number + 1
-                current_number += 1
-            try:
-                materials = set(materials)
-            except TypeError as Err:
-                logger.error(Err)
 
-            [media_group.attach_photo(material) for material in materials]
-
-            await NotOnlyFansBot.bot.send_media_group(
-                chat_id=message.from_user.id,
-                media=media_group,
+        msg = await NotOnlyFansBot.bot.send_message(
+            chat_id=message.from_user.id, text="Получаем фото..."
+        )
+        media_group = types.MediaGroup()
+        materials = [
+            await NotOnlyFansBot.m_manager.get_material_url(
+                current_model[0], current_model[1], "photos", current_number - i
             )
-            await msg.delete()
+            for i in range(5)
+        ]
+        [media_group.attach_photo(material) for material in materials]
+
+        await msg.edit_text(text="Загружаем фото...")
+        await NotOnlyFansBot.bot.send_media_group(
+            chat_id=message.from_user.id, media=media_group
+        )
+        await msg.delete()
 
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить видео")
@@ -265,7 +259,7 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
-            video_img, video_url = await MaterialsManager().get_material_url(
+            video_img, video_url = await NotOnlyFansBot.m_manager.get_material_url(
                 current_model[0], current_model[2], "videos", current_number
             )
             data["_current_number"] = current_number + 1

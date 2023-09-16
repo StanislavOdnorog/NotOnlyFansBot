@@ -55,7 +55,7 @@ class Queries:
         if user_id:
             with Cursor() as c:
                 c.execute(
-                    f"INSERT INTO users_db(user_id, user_endsub) VALUES ('{user_id}', CURRENT_DATE + interval '5 day') ON CONFLICT DO NOTHING"
+                    f"INSERT INTO users_db(user_id, user_endsub) VALUES ('{user_id}', CURRENT_DATE + interval '3 day') ON CONFLICT DO NOTHING"
                 )
 
     @staticmethod
