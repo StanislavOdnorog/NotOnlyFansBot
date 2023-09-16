@@ -1,7 +1,12 @@
 from db.cursor import Cursor
 
-
 class Queries:
+
+    @staticmethod
+    async def delete_bios():
+        with Cursor() as c:
+            c.execute("UPDATE notonlyfans_db SET bio = null")
+
     @staticmethod
     async def save_models(models):
         with Cursor() as c:
@@ -19,7 +24,7 @@ class Queries:
     @staticmethod
     def view_models():
         with Cursor() as c:
-            c.execute("SELECT model FROM public.notonlyfans_db ORDER BY photos DESC")
+            c.execute("SELECT model FROM public.notonlyfans_db ORDER BY bio DESC")
             record_table = c.fetchall()
         return record_table
 

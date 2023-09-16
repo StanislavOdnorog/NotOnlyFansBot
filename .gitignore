@@ -221,7 +221,9 @@ pip-selfcheck.json
 
 
 ### Personal Data
-.err_log
+.bot_log
+.update_log
+.support_log
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,visualstudiocode,venv

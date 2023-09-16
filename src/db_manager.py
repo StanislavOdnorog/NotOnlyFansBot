@@ -29,21 +29,38 @@ class DBManager:
 
     async def update_models(self):
         await self.initialize_manager()
-        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages)]
+        await Queries.delete_bios()
+        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages+1)]
         rs = [grequests.get(url) for url in urls]
 
         with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
             for r in grequests.map(rs):
+                try:
+                    if r.status_code != 200:
+                        bar()
+                        continue
+                except AttributeError as Err:
+                    logger.error(Err)
+                    bar()
+                    continue
                 page_models = await self.get_models(r)
                 await Queries.save_models(page_models)
                 bar()
 
-    async def update_materials(self):
+    async def update_materials(self, attempt):
         await self.initialize_manager()
         urls = Queries.view_models()[:500]
-        with alive_bar(len(urls), force_tty=True, title="Updating Materials:") as bar:
+        with alive_bar(len(urls), force_tty=True, title=f"Updating Materials [{attempt}/61]:") as bar:
             rs = (grequests.get(config.MODELS_URL + str(*url)) for url in urls)
             for r in grequests.map(rs):
+                try:
+                    if r.status_code != 200:
+                        bar()
+                        continue
+                except AttributeError as Err:
+                    logger.error(Err)
+                    bar()
+                    continue
                 materials = await self.get_model_materials(r)
                 await Queries.save_model_materials(materials)
                 bar()

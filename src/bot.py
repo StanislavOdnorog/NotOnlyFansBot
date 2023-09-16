@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import datetime
 import sys
 import typing
@@ -75,6 +76,8 @@ class NotOnlyFansBot:
 
     @staticmethod
     def clean_bio(bio):
+        if not bio:
+            return ""
         bio = (
             "\n".join(bio.replace("\r", "\n").split("\n")[:8])
             if len(bio.split("\n")) >= 8
@@ -196,7 +199,7 @@ class NotOnlyFansBot:
             await NotOnlyFansBot.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=msg,
-                text=f"ID операции: {pay_id}\nСтатус: Ожидает оплаты\nВремя проверки: {datetime.datetime.now().time()}\nСтоимость подписки: {config.SUBSCRIPTION_COST} рублей\nПроверка оплаты может достигать 5-7 минут",
+                text=f"ID операции: {pay_id}\nСтатус: Ожидает оплаты\nВремя проверки: {(datetime.datetime.now() + datetime.timedelta(hours=3)).time()}\nСтоимость подписки: {config.SUBSCRIPTION_COST} рублей\nПроверка оплаты может достигать 5-7 минут",
                 reply_markup=ikb,
             )
 
@@ -408,9 +411,9 @@ if __name__ == "__main__":
     if "-u" in sys.argv or "--update" in sys.argv:
         db = DBManager()
         loop = asyncio.get_event_loop()
-        tasks = [loop.create_task(db.update_models())]
-        tasks.append(loop.create_task(db.update_materials()) for _ in range(60))
-        loop.run_until_complete(asyncio.wait(tasks))
+        # loop.create_task(db.update_models())
+        [loop.create_task(db.update_materials(attempt)) for attempt in range(61)]
+        loop.run_forever()
         loop.close()
     elif "-s" in sys.argv or "--support" in sys.argv:
         executor.start_polling(dispatcher=Support.dp, skip_updates=True)
