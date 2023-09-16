@@ -39,6 +39,9 @@ class MaterialsManager:
                 await self.get_material_number(materials_num, current_number)
             ]["thumbnail"]
 
+            if href == None:
+                return config.NO_MATERIAL_URL
+
             if material_type == "videos":
                 video_url = (
                     config.PLAYER_REF
@@ -62,9 +65,15 @@ class MaterialsManager:
         page = await self.get_page_number(materials_num, current_number)
         attributes = await self.get_req_params(page, material_type)
         response = grequests.map(
-            [grequests.get(url, params=attributes[0], headers=attributes[1])], size=5
-        )
-        return response[0]
+            [grequests.get(url, params=attributes[0], headers=attributes[1])]
+        )[0]
+        try:
+            if response.status_code != 200:
+                return None
+        except AttributeError as Err:
+            logger.error(Err)
+            return None
+        return response
 
     async def get_page_number(self, materials_num, current_number):
         current_number %= materials_num

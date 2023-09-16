@@ -1,7 +1,7 @@
 from db.cursor import Cursor
 
-class Queries:
 
+class Queries:
     @staticmethod
     async def delete_bios():
         with Cursor() as c:

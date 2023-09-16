@@ -30,7 +30,7 @@ class DBManager:
     async def update_models(self):
         await self.initialize_manager()
         await Queries.delete_bios()
-        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages+1)]
+        urls = [config.PAGE_URL + str(page) for page in range(1, self.pages + 1)]
         rs = [grequests.get(url) for url in urls]
 
         with alive_bar(len(rs), force_tty=True, title="Updating Models:") as bar:
@@ -50,7 +50,9 @@ class DBManager:
     async def update_materials(self, attempt):
         await self.initialize_manager()
         urls = Queries.view_models()[:500]
-        with alive_bar(len(urls), force_tty=True, title=f"Updating Materials [{attempt}/61]:") as bar:
+        with alive_bar(
+            len(urls), force_tty=True, title=f"Updating Materials [{attempt}/61]:"
+        ) as bar:
             rs = (grequests.get(config.MODELS_URL + str(*url)) for url in urls)
             for r in grequests.map(rs):
                 try:

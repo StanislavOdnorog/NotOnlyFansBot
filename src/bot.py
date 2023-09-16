@@ -1,7 +1,7 @@
 import asyncio
-import threading
 import datetime
 import sys
+import threading
 import typing
 import uuid
 from asyncio import Lock
@@ -11,10 +11,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.storage import FSMContext
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (ChatActions, InlineKeyboardButton,
+                           InlineKeyboardMarkup, InputMediaPhoto)
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
 from aiogram.utils.callback_data import CallbackData
+from aiogram.utils.exceptions import BadRequest
 
 from core.config import config
 from core.logger import logger
@@ -296,9 +298,9 @@ class NotOnlyFansBot:
                 return
 
         msg = await NotOnlyFansBot.bot.send_message(
-            chat_id=message.from_user.id, text="Получаем фото..."
+            chat_id=message.from_user.id, text="Получаем фото с сервера..."
         )
-        media_group = types.MediaGroup()
+        media_group = []
         materials = [
             await NotOnlyFansBot.m_manager.get_material_url(
                 current_model[0], current_model[1], "photos", current_number - i
@@ -307,13 +309,19 @@ class NotOnlyFansBot:
         ]
 
         materials = set(materials)
-        [media_group.attach_photo(material) for material in materials]
+        for material in materials:
+            media_group.append(InputMediaPhoto(material))
+            await types.ChatActions.upload_photo()
 
-        await msg.edit_text(text="Загружаем фото...")
-        await NotOnlyFansBot.bot.send_media_group(
-            chat_id=message.from_user.id, media=media_group
-        )
-        await msg.delete()
+        await msg.edit_text(text="Загружаем фото в телеграм...")
+        try:
+            await NotOnlyFansBot.bot.send_media_group(
+                chat_id=message.from_user.id, media=media_group
+            )
+            await msg.delete()
+        except BadRequest as Err:
+            logger.error(Err)
+            await msg.edit_text(text="Не удалось загрузить фото 🥲")
 
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Получить видео")
