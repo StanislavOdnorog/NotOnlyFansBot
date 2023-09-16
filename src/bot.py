@@ -1,17 +1,19 @@
 import asyncio
+import datetime
 import sys
 import typing
+import uuid
 from asyncio import Lock
-from datetime import datetime
 
+import grequests
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.types.message import ContentType
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
+from aiogram.utils.callback_data import CallbackData
 
 from core.config import config
 from core.logger import logger
@@ -68,10 +70,8 @@ class NotOnlyFansBot:
     keyboard = register_keyboard()
     lock = Lock()
     DBManager.initialize_database()
-    PRICE = types.LabeledPrice(
-        label="Подписка на 1 месяц", amount=config.SUBSCRIPTION_COST
-    )
     m_manager = MaterialsManager()
+    args = CallbackData("dun_w", "paymentid", "message", "userid", "msgurlid")
 
     @staticmethod
     def clean_bio(bio):
@@ -107,28 +107,102 @@ class NotOnlyFansBot:
     @staticmethod
     @dp.message_handler(commands=["subscribe"])
     async def process_subscribe_command(message: types.Message):
-        await NotOnlyFansBot.bot.send_invoice(
-            message.from_user.id,
-            title="NotOnlyFansBot",
-            description="Подписка на NotOnlyFansBot на 1 месяц",
-            provider_token=config.PAYMENTS_TOKEN,
-            currency="rub",
-            photo_url=config.PAYMENT_IMG,
-            photo_width=416,
-            photo_height=234,
-            is_flexible=False,
-            prices=[NotOnlyFansBot.PRICE],
-            start_parameter="one-month-subscription",
-            payload="test-invoice-payload",
+        response = grequests.map(
+            [
+                grequests.post(
+                    url=config.PAYMENT_URL,
+                    params={
+                        "shop_id": config.SHOP_ID,
+                        "order_id": uuid.uuid4(),
+                        "amount": config.SUBSCRIPTION_COST,
+                        "token": config.SHOP_TOKEN,
+                    },
+                )
+            ]
+        )[0].json()
+
+        msg_url = await NotOnlyFansBot.bot.send_message(
+            chat_id=message.from_user.id, text=f"Ссылка на оплату: {response['url']}"
         )
 
-    @dp.pre_checkout_query_handler(lambda query: True)
-    async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
-        await NotOnlyFansBot.bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+        msg = await NotOnlyFansBot.bot.send_message(
+            chat_id=message.from_user.id,
+            text=f"ID операции: {response['id']}\nСтоимость подписки: {config.SUBSCRIPTION_COST} рублей",
+        )
 
-    @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
-    async def register_successful_payment(message: types.Message):
-        Queries.prolong_subsription(str(message.from_user.id))
+        ikb = InlineKeyboardMarkup().add(
+            InlineKeyboardButton(
+                text="Проверить оплату",
+                callback_data=NotOnlyFansBot.args.new(
+                    paymentid=response["id"],
+                    message=msg.message_id,
+                    userid=message.from_user.id,
+                    msgurlid=msg_url.message_id,
+                ),
+            )
+        )
+
+        await msg.edit_reply_markup(reply_markup=ikb)
+
+    @dp.callback_query_handler(args.filter())
+    async def check_payment(call: types.CallbackQuery, callback_data: dict):
+        msg = callback_data.get("message")
+        pay_id = callback_data.get("paymentid")
+        user_id = callback_data.get("userid")
+        msg_url_id = callback_data.get("msgurlid")
+
+        response = grequests.map(
+            [
+                grequests.get(
+                    url=config.CHECK_PAYMENT_URL,
+                    params={
+                        "shop_id": config.SHOP_ID,
+                        "id": pay_id,
+                        "token": config.SHOP_TOKEN,
+                    },
+                )
+            ]
+        )[0].json()
+
+        ikb = InlineKeyboardMarkup().add(
+            InlineKeyboardButton(
+                text="Проверить оплату",
+                callback_data=NotOnlyFansBot.args.new(
+                    paymentid=pay_id, message=msg, userid=user_id, msgurlid=msg_url_id
+                ),
+            )
+        )
+
+        if response["status"] == "PAID":
+            await NotOnlyFansBot.register_successful_payment(user_id)
+            await NotOnlyFansBot.bot.edit_message_text(
+                chat_id=user_id,
+                message_id=msg,
+                text=f"ID операции: {pay_id}\nСтатус: Успешно проведен",
+            )
+            await NotOnlyFansBot.bot.delete_message(
+                chat_id=user_id, message_id=msg_url_id
+            )
+        elif response["status"] == "CANCEL":
+            await NotOnlyFansBot.bot.edit_message_text(
+                chat_id=user_id,
+                message_id=msg,
+                text=f"ID операции: {pay_id}\nСтатус: Отменен",
+            )
+            await NotOnlyFansBot.bot.delete_message(
+                chat_id=user_id, message_id=msg_url_id
+            )
+        elif response["status"] == "WAIT":
+            await NotOnlyFansBot.bot.edit_message_text(
+                chat_id=user_id,
+                message_id=msg,
+                text=f"ID операции: {pay_id}\nСтатус: Ожидает оплаты\nВремя проверки: {datetime.datetime.now().time()}\nСтоимость подписки: {config.SUBSCRIPTION_COST} рублей\nПроверка оплаты может достигать 5-7 минут",
+                reply_markup=ikb,
+            )
+
+    @staticmethod
+    async def register_successful_payment(user_id):
+        Queries.prolong_subsription(str(user_id))
 
     @staticmethod
     @dp.message_handler(lambda message: message.text == "Текущая модель")
@@ -265,6 +339,7 @@ class NotOnlyFansBot:
                 current_model[0], current_model[2], "videos", current_number
             )
             data["_current_number"] = current_number + 1
+
             ikb = InlineKeyboardMarkup().add(
                 InlineKeyboardButton(
                     text="Переход к видео",
@@ -304,8 +379,7 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
             else:
-                models_alike_response = Queries.get_alike_models(
-                    message.text.lower())
+                models_alike_response = Queries.get_alike_models(message.text.lower())
                 no_model_message = "Модель не найдена 😓\n"
 
                 if models_alike_response:
@@ -335,8 +409,7 @@ if __name__ == "__main__":
         db = DBManager()
         loop = asyncio.get_event_loop()
         tasks = [loop.create_task(db.update_models())]
-        tasks.append(loop.create_task(db.update_materials())
-                     for _ in range(60))
+        tasks.append(loop.create_task(db.update_materials()) for _ in range(60))
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
     elif "-s" in sys.argv or "--support" in sys.argv:
