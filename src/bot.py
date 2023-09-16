@@ -228,6 +228,8 @@ class NotOnlyFansBot:
             )
             for i in range(5)
         ]
+
+        materials = set(materials)
         [media_group.attach_photo(material) for material in materials]
 
         await msg.edit_text(text="Загружаем фото...")
@@ -302,7 +304,8 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
             else:
-                models_alike_response = Queries.get_alike_models(message.text.lower())
+                models_alike_response = Queries.get_alike_models(
+                    message.text.lower())
                 no_model_message = "Модель не найдена 😓\n"
 
                 if models_alike_response:
@@ -332,7 +335,8 @@ if __name__ == "__main__":
         db = DBManager()
         loop = asyncio.get_event_loop()
         tasks = [loop.create_task(db.update_models())]
-        tasks.append(loop.create_task(db.update_materials()) for _ in range(60))
+        tasks.append(loop.create_task(db.update_materials())
+                     for _ in range(60))
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
     elif "-s" in sys.argv or "--support" in sys.argv:
