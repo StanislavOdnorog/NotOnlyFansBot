@@ -12,7 +12,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import (ChatActions, InlineKeyboardButton,
-                           InlineKeyboardMarkup, InputMediaPhoto)
+                           InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo)
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils import executor
 from aiogram.utils.callback_data import CallbackData
@@ -346,22 +346,33 @@ class NotOnlyFansBot:
                     reply_markup=NotOnlyFansBot.keyboard,
                 )
                 return
+            msg = await NotOnlyFansBot.bot.send_message(chat_id=message.from_user.id, text="Получаем видео с сервера...")
             video_img, video_url = await NotOnlyFansBot.m_manager.get_material_url(
                 current_model[0], current_model[2], "videos", current_number
             )
             data["_current_number"] = current_number + 1
 
-            ikb = InlineKeyboardMarkup().add(
-                InlineKeyboardButton(
-                    text="Переход к видео",
-                    web_app=WebAppInfo(
-                        url=video_url if video_url else config.NO_MATERIAL_URL
-                    ),
-                )
+        ikb = InlineKeyboardMarkup().add(
+            InlineKeyboardButton(
+                text="Переход к видео",
+                web_app=WebAppInfo(
+                    url=video_url if video_url else config.NO_MATERIAL_URL
+                ),
             )
+        )
+        media_group = []
+        media_group.append(InputMediaPhoto(media=video_img))
+        await types.ChatActions.upload_photo()
+
+        await msg.edit_text(text="Загружаем видео в телеграм...")
+        try:
             await NotOnlyFansBot.bot.send_photo(
-                message.from_user.id, photo=video_img, reply_markup=ikb
+                chat_id=message.from_user.id, photo=video_img, reply_markup=ikb, caption="Стриминг видео, к сожалению, зависит от стороннего сервера, что может приводить к проблемам с загрузкой 🥺"
             )
+            await msg.delete()
+        except BadRequest as Err:
+            logger.error(Err)
+            await msg.edit_text(text="Не удалось загрузить видео 🥲")
 
     @staticmethod
     @dp.message_handler(content_types="text", state=RegisterMessages.await_name)
