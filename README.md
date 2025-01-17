@@ -1,6 +1,6 @@
 # NotOnlyFansBot
 
-NotOnlyFansBot is a Python bot designed to scrape and collect data from OnlyFans-like websites. This README provides an overview of the project structure and instructions on how to set up and configure the bot for your specific use case.
+NotOnlyFansBot is a Python bot designed to scrape and collect data from websites. This README provides an overview of the project structure and instructions on how to set up and configure the bot for your specific use case.
 
 ## Project Structure
 
